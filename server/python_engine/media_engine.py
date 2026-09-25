@@ -73,6 +73,9 @@ def get_base_ydl_opts():
         'extractor_retries': 10,
         'socket_timeout': 45,
         'geo_bypass': True,
+        'js_runtimes': {
+            'node': {}
+        },
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -82,10 +85,8 @@ def get_base_ydl_opts():
     }
     if FFMPEG_EXE:
         opts['ffmpeg_location'] = FFMPEG_EXE
-    if NODE_EXE:
-        opts['js_runtimes'] = {
-            'node': {'path': NODE_EXE}
-        }
+    if NODE_EXE and NODE_EXE != 'node' and os.path.exists(NODE_EXE):
+        opts['js_runtimes']['node']['path'] = NODE_EXE
     return opts
 
 def extract_media_info(url):

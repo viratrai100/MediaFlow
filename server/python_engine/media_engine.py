@@ -128,7 +128,8 @@ def extract_media_info(url):
         elif height <= 800: bucket = '720p'
         elif height <= 1180: bucket = '1080p'
         elif height <= 1600: bucket = '1440p'
-        else: bucket = '2160p'
+        elif height <= 2500: bucket = '2160p'
+        else: bucket = '4320p'
 
         v_size = f.get('filesize') or f.get('filesize_approx') or 0
         total_estimated_size = v_size + (best_audio_size if f.get('acodec') == 'none' else 0)
@@ -147,6 +148,7 @@ def extract_media_info(url):
 
     # Format labels
     label_map = {
+        '4320p': '4320p (8K Ultra HD)',
         '2160p': '2160p (4K Ultra HD)',
         '1440p': '1440p (2K Quad HD)',
         '1080p': '1080p Full HD',
@@ -159,7 +161,7 @@ def extract_media_info(url):
 
     formatted_video_list = []
     # Sort descending by height
-    bucket_order = ['2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']
+    bucket_order = ['4320p', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p']
     for b in bucket_order:
         if b in height_buckets:
             item = height_buckets[b]
@@ -279,7 +281,9 @@ def download_media(url, format_id, output_path):
     else:
         # Resolve target height
         try:
-            if format_id in ['4k', '2160p']:
+            if format_id in ['8k', '4320p']:
+                target_height = 4320
+            elif format_id in ['4k', '2160p']:
                 target_height = 2160
             elif format_id in ['2k', '1440p']:
                 target_height = 1440

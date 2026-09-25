@@ -76,10 +76,13 @@ export function DownloadProvider({ children }) {
     };
   }, []);
 
-  // Fetch Media Info from live Express backend (or fallback to mock if detached)
+  // AbortController ref for cancelable downloads
+  const activeDownloadAbortRef = useRef(null);
+
+  // Fetch Media Info from live Express backend
   const fetchMedia = async (targetUrl) => {
     const inputUrl = targetUrl || url;
-    if (!inputUrl.trim()) {
+    if (!inputUrl || !inputUrl.trim()) {
       setErrorMessage('Please enter a valid social media URL.');
       setStatus('error');
       return;
@@ -91,15 +94,10 @@ export function DownloadProvider({ children }) {
     setProgress(0);
 
     try {
-      let info;
-      try {
-        info = await apiService.fetchMediaInfo(inputUrl);
-        if (typeof info.platform === 'string') {
-          const matched = Object.values(PLATFORMS).find((p) => p.id === info.platform) || PLATFORMS.DIRECT;
-          info.platform = matched;
-        }
-      } catch (backendErr) {
-        info = await mockFetchMediaInfo(inputUrl);
+      const info = await apiService.fetchMediaInfo(inputUrl.trim());
+      if (typeof info.platform === 'string') {
+        const matched = Object.values(PLATFORMS).find((p) => p.id === info.platform) || PLATFORMS.DIRECT;
+        info.platform = matched;
       }
 
       setMediaInfo(info);
@@ -107,30 +105,15 @@ export function DownloadProvider({ children }) {
       setSelectedFormat(initialFmt);
       setStatus('ready');
     } catch (err) {
-      setErrorMessage(err.response?.data?.error?.message || err.message || 'Failed to extract media information.');
+      const errorMsg =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to extract media information from source.';
+      setErrorMessage(errorMsg);
       setStatus('error');
     }
   };
-
-  // Polling control refs
-  const pollingActiveRef = useRef(false);
-  const pollingTimeoutRef = useRef(null);
-  const [downloadReadyUrl, setDownloadReadyUrl] = useState(null);
-
-  const stopPolling = () => {
-    pollingActiveRef.current = false;
-    if (pollingTimeoutRef.current) {
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
-    }
-  };
-
-  // Clean up polling interval on unmount
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, []);
 
   // Helper: Trigger genuine browser file download via native download manager
   const triggerBrowserDownload = (downloadUrl, title, extension = 'mp4') => {
@@ -153,12 +136,18 @@ export function DownloadProvider({ children }) {
     }
   };
 
-  // Start Real Browser Stream Download Immediately
+  // Start Real Browser Stream Download with Authentic Progress & Error Interception
   const startDownload = async () => {
     if (!mediaInfo || !selectedFormat || status === 'downloading' || status === 'fetching') return;
 
-    stopPolling();
     setErrorMessage(null);
+    setProgress(0);
+    setDownloadedBytes('0 MB');
+    setDownloadSpeed('0.0 MB/s');
+    setStatus('downloading');
+
+    const abortController = new AbortController();
+    activeDownloadAbortRef.current = abortController;
 
     try {
       // Build direct HTTP streaming URL with selected quality format
@@ -168,24 +157,86 @@ export function DownloadProvider({ children }) {
         mediaInfo.title
       );
 
-      setDownloadReadyUrl(downloadUrl);
-      setStatus('downloading');
+      // Perform streaming fetch with AbortSignal
+      const response = await fetch(downloadUrl, {
+        signal: abortController.signal
+      });
 
-      // Trigger browser's native download manager immediately
-      triggerBrowserDownload(downloadUrl, mediaInfo.title, selectedFormat.container || 'mp4');
+      // Intercept non-200 responses (HTTP 400 / 403 / 500)
+      if (!response.ok) {
+        let errMsg = `Server returned HTTP ${response.status}`;
+        try {
+          const errJson = await response.json();
+          errMsg = errJson.error?.message || errJson.message || errMsg;
+        } catch (jsonErr) {
+          const rawText = await response.text().catch(() => '');
+          if (rawText) errMsg = rawText;
+        }
+        throw new Error(errMsg);
+      }
 
-      // Record in local history
-      recordHistoryItem(selectedFormat.sizeMB || selectedFormat.size || 'Direct Stream');
+      // Stream binary response chunks while computing real-time speed & progress
+      const contentLengthHeader = response.headers.get('Content-Length');
+      const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+      const reader = response.body.getReader();
+      const chunks = [];
+      let receivedBytes = 0;
+      let lastTime = Date.now();
+      let lastBytes = 0;
 
-      // Set status to completed so user has access to re-download / actions
-      setTimeout(() => {
-        setStatus('completed');
-      }, 500);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        receivedBytes += value.length;
+
+        const receivedMBStr = (receivedBytes / (1024 * 1024)).toFixed(1) + ' MB';
+        setDownloadedBytes(receivedMBStr);
+
+        if (totalBytes > 0) {
+          const pct = Math.min(Math.round((receivedBytes / totalBytes) * 100), 99);
+          setProgress(pct);
+        }
+
+        const now = Date.now();
+        if (now - lastTime >= 400) {
+          const bytesDiff = receivedBytes - lastBytes;
+          const timeDiffSec = (now - lastTime) / 1000;
+          const speedBps = bytesDiff / timeDiffSec;
+          setDownloadSpeed((speedBps / (1024 * 1024)).toFixed(2) + ' MB/s');
+
+          if (totalBytes > receivedBytes && speedBps > 0) {
+            setEtaSeconds(Math.round((totalBytes - receivedBytes) / speedBps));
+          }
+          lastTime = now;
+          lastBytes = receivedBytes;
+        }
+      }
+
+      // Assemble Blob and trigger browser save
+      const extension = selectedFormat.container || (selectedFormat.type === 'audio' ? 'mp3' : 'mp4');
+      const mimeType = selectedFormat.type === 'audio' ? 'audio/mpeg' : 'video/mp4';
+      const blob = new Blob(chunks, { type: response.headers.get('Content-Type') || mimeType });
+      const blobUrl = URL.createObjectURL(blob);
+
+      triggerBrowserDownload(blobUrl, mediaInfo.title, extension);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+
+      setProgress(100);
+      setStatus('completed');
+      recordHistoryItem((receivedBytes / (1024 * 1024)).toFixed(1));
 
     } catch (err) {
-      stopPolling();
-      setStatus('error');
-      setErrorMessage(err.message || 'Could not initiate download.');
+      if (err.name === 'AbortError') {
+        setStatus('cancelled');
+        setErrorMessage('Download was cancelled.');
+      } else {
+        setStatus('error');
+        setErrorMessage(err.message || 'Download request failed.');
+      }
+    } finally {
+      activeDownloadAbortRef.current = null;
     }
   };
 
@@ -204,30 +255,28 @@ export function DownloadProvider({ children }) {
     setHistory((prev) => [newHistoryItem, ...prev]);
   };
 
-  // Cancel active job
-  const cancelCurrentJob = async () => {
-    stopPolling();
-
-    if (currentJobId) {
-      try {
-        await apiService.cancelJob(currentJobId);
-      } catch (e) {}
+  // Cancel active download
+  const cancelCurrentJob = () => {
+    if (activeDownloadAbortRef.current) {
+      activeDownloadAbortRef.current.abort();
     }
-
     setStatus('cancelled');
     setErrorMessage('Download was cancelled.');
   };
 
   const resetDownloader = () => {
-    stopPolling();
+    if (activeDownloadAbortRef.current) {
+      activeDownloadAbortRef.current.abort();
+    }
     setUrl('');
     setMediaInfo(null);
     setSelectedFormat(null);
     setStatus('idle');
     setErrorMessage(null);
     setProgress(0);
-    setCurrentJobId(null);
-    setDownloadReadyUrl(null);
+    setDownloadedBytes('0 MB');
+    setDownloadSpeed('0.0 MB/s');
+    setEtaSeconds(0);
   };
 
   const deleteHistoryItem = (id) => {

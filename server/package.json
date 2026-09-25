@@ -1,0 +1,45 @@
+{
+  "name": "social-downloader-server",
+  "version": "1.0.0",
+  "description": "Backend API and pure JavaScript media streaming pipeline for Social Media Video Downloader",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --test --test-concurrency=1 src/test/unit.test.js src/test/api.test.js src/test/auth.test.js src/test/adapter.test.js src/test/stream.test.js src/test/job.test.js src/test/admin.test.js src/test/security.test.js",
+    "lint": "eslint src/"
+  },
+  "keywords": [
+    "video-downloader",
+    "media-stream",
+    "ffmpeg",
+    "express",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "helmet": "^8.0.0",
+    "jinter": "^0.4.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5",
+    "play-dl": "^1.9.7",
+    "youtube-ext": "^1.1.25",
+    "youtubei.js": "^18.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

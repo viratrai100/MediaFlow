@@ -128,9 +128,14 @@ class PythonMediaService {
       child.on('close', async (code) => {
         if (code !== 0 && !stdoutData.trim()) {
           const rawErr = stderrData.trim();
-          // Self-heal if yt_dlp is missing
-          if (rawErr.includes("No module named 'yt_dlp'") && !isRetry) {
-            logger.warn('Missing yt_dlp detected during execution, self-healing...');
+          // Self-heal if yt_dlp is missing or player response needs latest yt-dlp version
+          if (
+            (rawErr.includes("No module named 'yt_dlp'") ||
+              rawErr.includes('Failed to extract any player response') ||
+              rawErr.includes('yt-dlp -U')) &&
+            !isRetry
+          ) {
+            logger.warn('yt-dlp update required for YouTube player response, self-healing host...');
             const healed = await this.ensureDependencies();
             if (healed) {
               try {
@@ -156,6 +161,22 @@ class PythonMediaService {
           const jsonResult = JSON.parse(match[0]);
 
           if (jsonResult.success === false) {
+            const errStr = jsonResult.error || '';
+            if (
+              (errStr.includes('Failed to extract any player response') || errStr.includes('yt-dlp -U')) &&
+              !isRetry
+            ) {
+              logger.warn('Upgrading yt-dlp due to player response error and retrying...');
+              const healed = await this.ensureDependencies();
+              if (healed) {
+                try {
+                  const retryResult = await this.runEngine(args, signal, true);
+                  return resolve(retryResult);
+                } catch (retryErr) {
+                  return reject(retryErr);
+                }
+              }
+            }
             return reject(new Error(jsonResult.error || 'Media engine operation failed.'));
           }
 

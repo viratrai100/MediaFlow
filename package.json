@@ -5,7 +5,7 @@
   "description": "MediaFlow Social Stream Root Monorepo",
   "scripts": {
     "start": "npm start --prefix server",
-    "build": "npm install --prefix server",
+    "build": "npm run build --prefix server",
     "postinstall": "npm run postinstall --prefix server || true"
   }
 }

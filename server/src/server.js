@@ -9,10 +9,10 @@ async function bootstrap() {
   // Initialize Database
   await connectDB();
 
-  // Start HTTP Listener
-  const server = app.listen(env.PORT, () => {
-    logger.success(`🚀 Express Server running on http://localhost:${env.PORT} in [${env.NODE_ENV}] mode`);
-    logger.info(`Health check available at: http://localhost:${env.PORT}/api/v1/health`);
+  // Start HTTP Listener on all interfaces (0.0.0.0) for cloud hosting (Render/AWS/Docker)
+  const server = app.listen(env.PORT, '0.0.0.0', () => {
+    logger.success(`🚀 Express Server running on port ${env.PORT} in [${env.NODE_ENV}] mode`);
+    logger.info(`Health check available at: http://0.0.0.0:${env.PORT}/api/v1/health`);
   });
 
   // Graceful Shutdown handler

@@ -66,11 +66,11 @@ class PythonMediaService {
 
       logger.warn(`yt-dlp module not detected in ${pythonExe}. Attempting automatic installation on host...`);
       const pipCommands = [
-        'pip install --no-cache-dir yt-dlp --break-system-packages',
-        'pip3 install --no-cache-dir yt-dlp --break-system-packages',
-        `${pythonExe} -m pip install --no-cache-dir yt-dlp --break-system-packages`,
-        'pip install yt-dlp',
-        'pip3 install yt-dlp'
+        'pip install --no-cache-dir -U yt-dlp --break-system-packages',
+        'pip3 install --no-cache-dir -U yt-dlp --break-system-packages',
+        `${pythonExe} -m pip install --no-cache-dir -U yt-dlp --break-system-packages`,
+        'pip install -U yt-dlp',
+        'pip3 install -U yt-dlp'
       ];
 
       for (const cmd of pipCommands) {

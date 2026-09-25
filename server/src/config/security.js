@@ -46,4 +46,5 @@ export function configureSecurity(app) {
   };
 
   app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
 }

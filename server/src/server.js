@@ -6,13 +6,15 @@ import { logger } from './utils/logger.js';
 async function bootstrap() {
   const app = createApp();
 
-  // Initialize Database
-  await connectDB();
-
-  // Start HTTP Listener on all interfaces (0.0.0.0) for cloud hosting (Render/AWS/Docker)
+  // 1. Start HTTP Listener immediately on all interfaces (0.0.0.0) so Render port probe succeeds instantly
   const server = app.listen(env.PORT, '0.0.0.0', () => {
     logger.success(`🚀 Express Server running on port ${env.PORT} in [${env.NODE_ENV}] mode`);
     logger.info(`Health check available at: http://0.0.0.0:${env.PORT}/api/v1/health`);
+  });
+
+  // 2. Initialize Database asynchronously without blocking server readiness
+  connectDB().catch((err) => {
+    logger.warn('Non-fatal MongoDB connection error on bootstrap:', err.message);
   });
 
   // Graceful Shutdown handler

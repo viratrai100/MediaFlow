@@ -241,8 +241,50 @@ npm test
 
 ---
 
-## 11. Project Roadmap
+---
+
+## 12. Production Deployment Guide (Render & Vercel)
+
+### Backend Deployment on Render
+
+1. Create a new **Web Service** on Render and link your GitHub repository.
+2. Configure Web Service settings:
+   - **Environment:** `Node`
+   - **Root Directory:** `server` (or leave empty if building from root monorepo)
+   - **Build Command:** `npm install`
+   - **Start Command:** `node src/server.js`
+3. Set the following **Environment Variables** in Render Dashboard:
+
+| Variable Name | Value | Purpose |
+| :--- | :--- | :--- |
+| `NODE_ENV` | `production` | Enables production security & logging |
+| `MONGODB_URI` | `mongodb+srv://<user>:<password>@cluster0.xxxx.mongodb.net/social_media_downloader?retryWrites=true&w=majority` | MongoDB Atlas database connection |
+| `CLIENT_URL` | `https://mediaflow-liart.vercel.app` | Frontend production origin for CORS |
+| `ALLOWED_ORIGINS` | `https://mediaflow-liart.vercel.app,http://localhost:5173` | Allowed cross-origin domains |
+| `JWT_SECRET` | `super_secret_jwt_key_social_stream_downloader_2026` | Token encryption secret |
+| `FFMPEG_PATH` | *(Leave empty)* | Automatically uses bundled `@ffmpeg-installer` Linux x64 binary |
+| `FFPROBE_PATH` | *(Leave empty)* | Automatically uses bundled `@ffprobe-installer` Linux x64 binary |
+| `PYTHON_PATH` | *(Leave empty)* | Automatically detects system `python3` / `python` |
+
+4. **Automatic Python Dependency Setup (`yt-dlp`)**:
+   - `server/package.json` includes `postinstall` which automatically executes:
+     ```bash
+     pip install -r python_engine/requirements.txt --break-system-packages || pip3 install -r python_engine/requirements.txt --break-system-packages
+     ```
+   - If `yt-dlp` is ever missing at runtime, `pythonMediaService` includes self-healing logic to automatically install dependencies without throwing `ModuleNotFoundError`.
+
+### Frontend Deployment on Vercel
+
+1. Import the `client` directory in Vercel.
+2. In **Environment Variables**, set:
+   - `VITE_API_BASE_URL`: `https://mediaflow-fdjz.onrender.com/api/v1`
+3. Click **Deploy**.
+
+---
+
+## 13. Project Roadmap
 See [`TASKS.md`](file:///c:/Users/raivi/OneDrive/Desktop/Social/TASKS.md) for full phase breakdown.
+
 
 
 

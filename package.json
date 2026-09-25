@@ -1,0 +1,11 @@
+{
+  "name": "mediaflow-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MediaFlow Social Stream Root Monorepo",
+  "scripts": {
+    "start": "npm start --prefix server",
+    "build": "npm install --prefix server",
+    "postinstall": "npm run postinstall --prefix server || true"
+  }
+}

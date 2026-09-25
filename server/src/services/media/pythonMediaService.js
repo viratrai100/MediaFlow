@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, spawnSync, execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -14,19 +14,98 @@ const ENGINE_PATH = path.resolve(__dirname, '../../../python_engine/media_engine
 
 class PythonMediaService {
   constructor() {
-    this.pythonExecutable = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
+    this._cachedPython = null;
+    // Perform startup dependency check asynchronously
+    this.ensureDependencies().catch(() => {});
+  }
+
+  /**
+   * Resolve active working python executable across Windows & Linux environments
+   */
+  getPython() {
+    if (this._cachedPython) return this._cachedPython;
+
+    if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
+      this._cachedPython = process.env.PYTHON_PATH;
+      return this._cachedPython;
+    }
+
+    const candidates = process.platform === 'win32'
+      ? ['python', 'py', 'python3']
+      : ['python3', 'python', '/usr/bin/python3', '/usr/local/bin/python3'];
+
+    for (const c of candidates) {
+      try {
+        const res = spawnSync(c, ['--version'], { stdio: 'pipe' });
+        if (res.status === 0) {
+          this._cachedPython = c;
+          return this._cachedPython;
+        }
+      } catch (e) {}
+    }
+
+    this._cachedPython = process.platform === 'win32' ? 'python' : 'python3';
+    return this._cachedPython;
+  }
+
+  /**
+   * Verify and self-heal yt-dlp installation on Render / production environments
+   */
+  async ensureDependencies() {
+    try {
+      const pythonExe = this.getPython();
+      const checkRes = spawnSync(pythonExe, ['-c', 'import yt_dlp; print(yt_dlp.version.__version__)'], {
+        encoding: 'utf-8',
+        stdio: 'pipe'
+      });
+
+      if (checkRes.status === 0 && checkRes.stdout) {
+        logger.info(`✔ Python media engine ready: ${pythonExe} (yt-dlp v${checkRes.stdout.trim()})`);
+        return true;
+      }
+
+      logger.warn(`yt-dlp module not detected in ${pythonExe}. Attempting automatic installation on host...`);
+      const pipCommands = [
+        'pip install --no-cache-dir yt-dlp --break-system-packages',
+        'pip3 install --no-cache-dir yt-dlp --break-system-packages',
+        `${pythonExe} -m pip install --no-cache-dir yt-dlp --break-system-packages`,
+        'pip install yt-dlp',
+        'pip3 install yt-dlp'
+      ];
+
+      for (const cmd of pipCommands) {
+        try {
+          execSync(cmd, { stdio: 'pipe' });
+          logger.info(`✔ yt-dlp installed successfully on host using: ${cmd}`);
+          return true;
+        } catch (pipErr) {}
+      }
+      logger.error('Failed to automatically install yt-dlp. Please verify requirements.txt in build command.');
+      return false;
+    } catch (e) {
+      logger.warn('Dependency check error:', e.message);
+      return false;
+    }
   }
 
   /**
    * Execute python media engine CLI command asynchronously
    */
-  async runEngine(args, signal = null) {
+  async runEngine(args, signal = null, isRetry = false) {
     return new Promise((resolve, reject) => {
-      const spawnOpts = { windowsHide: true };
+      const pythonExe = this.getPython();
+      const spawnOpts = {
+        windowsHide: true,
+        env: {
+          ...process.env,
+          PYTHONUNBUFFERED: '1',
+          PYTHONPATH: path.dirname(ENGINE_PATH)
+        }
+      };
       if (signal) {
         spawnOpts.signal = signal;
       }
-      const child = spawn(this.pythonExecutable, [ENGINE_PATH, ...args], spawnOpts);
+      const child = spawn(pythonExe, [ENGINE_PATH, ...args], spawnOpts);
 
       let stdoutData = '';
       let stderrData = '';
@@ -46,9 +125,23 @@ class PythonMediaService {
         reject(new Error(`Failed to execute Python media engine: ${err.message}`));
       });
 
-      child.on('close', (code) => {
+      child.on('close', async (code) => {
         if (code !== 0 && !stdoutData.trim()) {
-          return reject(new Error(stderrData.trim() || `Python media engine exited with code ${code}`));
+          const rawErr = stderrData.trim();
+          // Self-heal if yt_dlp is missing
+          if (rawErr.includes("No module named 'yt_dlp'") && !isRetry) {
+            logger.warn('Missing yt_dlp detected during execution, self-healing...');
+            const healed = await this.ensureDependencies();
+            if (healed) {
+              try {
+                const retryResult = await this.runEngine(args, signal, true);
+                return resolve(retryResult);
+              } catch (retryErr) {
+                return reject(retryErr);
+              }
+            }
+          }
+          return reject(new Error(rawErr || `Python media engine exited with code ${code}`));
         }
 
         try {

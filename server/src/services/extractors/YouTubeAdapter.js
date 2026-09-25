@@ -124,10 +124,15 @@ export class YouTubeAdapter extends BasePlatformAdapter {
     } catch (e) {}
 
     const formats = [
+      { formatId: '4320p', label: '4320p (8K Ultra HD)', quality: '4320p', container: 'mp4', type: 'video', codec: 'MP4 / AAC', size: '480.0 MB', sizeMB: '480.0 MB' },
+      { formatId: '2160p', label: '2160p (4K Ultra HD)', quality: '2160p', container: 'mp4', type: 'video', codec: 'VP9 / AAC', size: '240.0 MB', sizeMB: '240.0 MB' },
+      { formatId: '1440p', label: '1440p (2K Quad HD)', quality: '1440p', container: 'mp4', type: 'video', codec: 'VP9 / AAC', size: '120.0 MB', sizeMB: '120.0 MB' },
       { formatId: '1080p', label: '1080p Full HD', quality: '1080p', container: 'mp4', type: 'video', codec: 'H.264 / AAC', size: '59.8 MB', sizeMB: '59.8 MB', recommended: true },
       { formatId: '720p', label: '720p HD', quality: '720p', container: 'mp4', type: 'video', codec: 'H.264 / AAC', size: '24.7 MB', sizeMB: '24.7 MB', recommended: true },
       { formatId: '480p', label: '480p SD', quality: '480p', container: 'mp4', type: 'video', codec: 'H.264 / AAC', size: '13.6 MB', sizeMB: '13.6 MB' },
       { formatId: '360p', label: '360p Mobile', quality: '360p', container: 'mp4', type: 'video', codec: 'H.264 / AAC', size: '9.2 MB', sizeMB: '9.2 MB' },
+      { formatId: '240p', label: '240p Low', quality: '240p', container: 'mp4', type: 'video', codec: 'H.264 / AAC', size: '5.4 MB', sizeMB: '5.4 MB' },
+      { formatId: '144p', label: '144p Eco', quality: '144p', container: 'mp4', type: 'video', codec: 'H.264 / AAC', size: '3.1 MB', sizeMB: '3.1 MB' },
       { formatId: 'mp3_320', label: '320kbps Studio Audio', quality: '320kbps', container: 'mp3', type: 'audio', codec: 'MP3 (320 kbps)', size: '7.6 MB', sizeMB: '7.6 MB', hasVideo: false, hasAudio: true, recommended: true },
       { formatId: 'mp3_128', label: '128kbps Standard Audio', quality: '128kbps', container: 'mp3', type: 'audio', codec: 'MP3 (128 kbps)', size: '3.0 MB', sizeMB: '3.0 MB', hasVideo: false, hasAudio: true },
       { formatId: 'm4a_aac', label: 'Original AAC Soundtrack', quality: 'Original AAC', container: 'm4a', type: 'audio', codec: 'AAC (Original)', size: '3.1 MB', sizeMB: '3.1 MB', hasVideo: false, hasAudio: true }

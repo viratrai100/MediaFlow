@@ -14,6 +14,7 @@ export function DownloadProvider({ children }) {
 
   // Active Job State
   const [currentJobId, setCurrentJobId] = useState(null);
+  const [downloadReadyUrl, setDownloadReadyUrl] = useState(null);
   const pollingTimerRef = useRef(null);
 
   // Download streaming telemetry
@@ -219,9 +220,10 @@ export function DownloadProvider({ children }) {
       const mimeType = selectedFormat.type === 'audio' ? 'audio/mpeg' : 'video/mp4';
       const blob = new Blob(chunks, { type: response.headers.get('Content-Type') || mimeType });
       const blobUrl = URL.createObjectURL(blob);
+      setDownloadReadyUrl(blobUrl);
 
       triggerBrowserDownload(blobUrl, mediaInfo.title, extension);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
 
       setProgress(100);
       setStatus('completed');
@@ -271,6 +273,7 @@ export function DownloadProvider({ children }) {
     setUrl('');
     setMediaInfo(null);
     setSelectedFormat(null);
+    setDownloadReadyUrl(null);
     setStatus('idle');
     setErrorMessage(null);
     setProgress(0);

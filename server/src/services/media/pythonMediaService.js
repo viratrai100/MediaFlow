@@ -59,16 +59,20 @@ class PythonMediaService {
         stdio: 'pipe'
       });
 
-      if (checkRes.status === 0 && checkRes.stdout) {
-        logger.info(`✔ Python media engine ready: ${pythonExe} (yt-dlp v${checkRes.stdout.trim()})`);
+      const currentVer = checkRes.status === 0 && checkRes.stdout ? checkRes.stdout.trim() : null;
+      const isUpToDate = currentVer && currentVer >= '2024.12';
+
+      if (isUpToDate) {
+        logger.info(`✔ Python media engine ready: ${pythonExe} (yt-dlp v${currentVer})`);
         return true;
       }
 
-      logger.warn(`yt-dlp module not detected in ${pythonExe}. Attempting automatic installation on host...`);
+      logger.warn(`yt-dlp (${currentVer || 'not installed'}) in ${pythonExe} is outdated or missing. Upgrading to latest...`);
       const pipCommands = [
+        `${pythonExe} -m pip install --no-cache-dir -U yt-dlp --break-system-packages`,
         'pip install --no-cache-dir -U yt-dlp --break-system-packages',
         'pip3 install --no-cache-dir -U yt-dlp --break-system-packages',
-        `${pythonExe} -m pip install --no-cache-dir -U yt-dlp --break-system-packages`,
+        `${pythonExe} -m pip install -U yt-dlp`,
         'pip install -U yt-dlp',
         'pip3 install -U yt-dlp'
       ];
@@ -76,11 +80,17 @@ class PythonMediaService {
       for (const cmd of pipCommands) {
         try {
           execSync(cmd, { stdio: 'pipe' });
-          logger.info(`✔ yt-dlp installed successfully on host using: ${cmd}`);
-          return true;
+          const verify = spawnSync(pythonExe, ['-c', 'import yt_dlp; print(yt_dlp.version.__version__)'], {
+            encoding: 'utf-8',
+            stdio: 'pipe'
+          });
+          if (verify.status === 0 && verify.stdout) {
+            logger.info(`✔ yt-dlp upgraded successfully to v${verify.stdout.trim()} using: ${cmd}`);
+            return true;
+          }
         } catch (pipErr) {}
       }
-      logger.error('Failed to automatically install yt-dlp. Please verify requirements.txt in build command.');
+      logger.warn('Failed to automatically upgrade yt-dlp via pip.');
       return false;
     } catch (e) {
       logger.warn('Dependency check error:', e.message);

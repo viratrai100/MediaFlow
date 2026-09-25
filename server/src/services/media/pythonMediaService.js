@@ -14,7 +14,7 @@ const ENGINE_PATH = path.resolve(__dirname, '../../../python_engine/media_engine
 
 class PythonMediaService {
   constructor() {
-    this.pythonExecutable = process.env.PYTHON_PATH || 'python';
+    this.pythonExecutable = process.env.PYTHON_PATH || (process.platform === 'win32' ? 'python' : 'python3');
   }
 
   /**

@@ -7,11 +7,19 @@ import { AppError } from '../../utils/appError.js';
 import { HTTP_STATUS } from '../../constants/httpStatusCodes.js';
 import { ERROR_CODES } from '../../constants/errorCodes.js';
 
-if (ffmpegInstaller?.path) {
-  ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+const resolvedFfmpegPath = process.env.FFMPEG_PATH || ffmpegInstaller?.path || 'ffmpeg';
+const resolvedFfprobePath = process.env.FFPROBE_PATH || ffprobeInstaller?.path || 'ffprobe';
+
+try {
+  ffmpeg.setFfmpegPath(resolvedFfmpegPath);
+} catch (e) {
+  logger.warn('Failed to set FFmpeg path:', e.message);
 }
-if (ffprobeInstaller?.path) {
-  ffmpeg.setFfprobePath(ffprobeInstaller.path);
+
+try {
+  ffmpeg.setFfprobePath(resolvedFfprobePath);
+} catch (e) {
+  logger.warn('Failed to set FFprobe path:', e.message);
 }
 
 const ALLOWED_AUDIO_FORMATS = new Set(['mp3', 'm4a', 'aac', 'ogg', 'wav', 'flac']);

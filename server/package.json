@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "postinstall": "pip install -r python_engine/requirements.txt || pip3 install -r python_engine/requirements.txt || python3 -m pip install -r python_engine/requirements.txt || true",
     "test": "node --test --test-concurrency=1 src/test/unit.test.js src/test/api.test.js src/test/auth.test.js src/test/adapter.test.js src/test/stream.test.js src/test/job.test.js src/test/admin.test.js src/test/security.test.js",
     "lint": "eslint src/"
   },

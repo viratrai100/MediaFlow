@@ -21,7 +21,16 @@ export const env = Object.freeze({
   MAX_DOWNLOAD_CONCURRENCY: parseInt(process.env.MAX_DOWNLOAD_CONCURRENCY, 10) || 10,
   TEMP_FILE_TTL_MS: parseInt(process.env.TEMP_FILE_TTL_MS, 10) || 60 * 60 * 1000,
   MAX_MEDIA_FILE_SIZE_MB: parseInt(process.env.MAX_MEDIA_FILE_SIZE_MB, 10) || 500,
-  ALLOWED_ORIGINS: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173').split(','),
+  ALLOWED_ORIGINS: Array.from(
+    new Set([
+      ...(process.env.ALLOWED_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean),
+      process.env.CLIENT_URL,
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:5173',
+      'https://mediaflow-fdjz.onrender.com'
+    ].filter(Boolean))
+  ),
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development' || !process.env.NODE_ENV
 });

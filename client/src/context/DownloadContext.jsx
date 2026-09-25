@@ -106,11 +106,16 @@ export function DownloadProvider({ children }) {
       setSelectedFormat(initialFmt);
       setStatus('ready');
     } catch (err) {
-      const errorMsg =
+      let errorMsg =
         err.response?.data?.error?.message ||
         err.response?.data?.message ||
         err.message ||
         'Failed to extract media information from source.';
+
+      if (err.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
+        errorMsg = 'Request timed out while contacting server. The cloud server may be waking up from sleep mode. Please try again.';
+      }
+
       setErrorMessage(errorMsg);
       setStatus('error');
     }

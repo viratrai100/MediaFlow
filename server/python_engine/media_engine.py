@@ -300,17 +300,14 @@ def download_media(url, format_id, output_path):
         except Exception:
             target_height = 720
 
-        # Exact height selector: prioritizes exact resolution matched with best audio, remuxing into mp4
+        # Exact height selector: strictly matches exact resolution paired with best audio, remuxing into mp4
         ydl_opts['format'] = (
+            f"bestvideo[height={target_height}][ext=mp4]+bestaudio[ext=m4a]/"
+            f"bestvideo[height={target_height}]+bestaudio[ext=m4a]/"
             f"bestvideo[height={target_height}]+bestaudio/"
-            f"bestvideo[height<={target_height}]+bestaudio/"
-            f"best[height<={target_height}]/"
-            f"best"
+            f"best[height={target_height}]"
         )
         ydl_opts['merge_output_format'] = 'mp4'
-        ydl_opts['postprocessor_args'] = {
-            'Merger': ['-c:v', 'copy', '-c:a', 'aac', '-movflags', '+faststart']
-        }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         try:

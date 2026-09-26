@@ -226,12 +226,21 @@ class PythonMediaService {
       );
       return result;
     } catch (err) {
+      if (err instanceof AppError) throw err;
       if (err.message === 'DOWNLOAD_CANCELLED') {
         throw new AppError('Download was cancelled.', HTTP_STATUS.CLIENT_CLOSED_REQUEST, ERROR_CODES.CLIENT_DISCONNECTED);
       }
-      logger.error(`Python media download failed for format ${formatId}:`, err.message);
+      const rawMsg = err.message || '';
+      logger.error(`Python media download failed for format ${formatId}:`, rawMsg);
+      if (rawMsg.includes("Sign in to confirm you're not a bot") || rawMsg.includes('bot') || rawMsg.includes('Sign in')) {
+        throw new AppError(
+          'YouTube access restricted: Bot verification or account sign-in required by YouTube for this stream.',
+          HTTP_STATUS.BAD_REQUEST,
+          ERROR_CODES.YOUTUBE_AUTH_OR_ACCESS_REQUIRED
+        );
+      }
       throw new AppError(
-        `Download failed for format "${formatId}": ${err.message}`,
+        `Download failed for format "${formatId}": ${rawMsg}`,
         HTTP_STATUS.BAD_REQUEST,
         ERROR_CODES.STREAM_PIPELINE_ERROR
       );

@@ -14,18 +14,20 @@ export default function DownloadProgress({
   const Icon = isAudio ? Music : Film;
   const fmtSize = format?.size || format?.sizeMB;
 
+  const isPreparing = progress === 0 && (downloadSpeed.includes('Preparing') || downloadedBytes === '0 MB');
+
   return (
     <Card variant="gradient" className="space-y-6 p-7 text-center animate-in zoom-in-95 duration-200">
       <div className="w-16 h-16 rounded-2xl bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 flex items-center justify-center mx-auto shadow-lg shadow-cyan-950/40">
-        <ArrowDownToLine className="w-8 h-8 animate-bounce text-brand-cyan" />
+        <ArrowDownToLine className={`w-8 h-8 text-brand-cyan ${isPreparing ? 'animate-pulse' : 'animate-bounce'}`} />
       </div>
 
       <div className="space-y-2 max-w-md mx-auto">
-        <Badge variant="cyan" size="md">
-          Direct Stream Download Active
+        <Badge variant={isPreparing ? 'purple' : 'cyan'} size="md">
+          {isPreparing ? 'Stream Pipeline Initializing' : 'Direct Stream Active'}
         </Badge>
         <h3 className="text-lg sm:text-xl font-bold text-white">
-          Streaming Media to Your Device
+          {isPreparing ? 'Preparing High-Quality Media' : 'Streaming Media to Your Device'}
         </h3>
         <p className="text-xs text-slate-300">
           Format: <strong className="text-white">{format?.label || format?.formatId} ({format?.container?.toUpperCase() || 'MP4'})</strong>
@@ -38,10 +40,10 @@ export default function DownloadProgress({
         <div className="flex justify-between items-center text-xs font-semibold">
           <span className="text-slate-300 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-brand-cyan" />
-            Transferred: <strong className="text-white">{downloadedBytes || '0 MB'}</strong>
+            Transferred: <strong className="text-white">{isPreparing ? 'Buffering source...' : (downloadedBytes || '0 MB')}</strong>
           </span>
           <span className="text-brand-cyan font-mono text-xs">
-            {progress > 0 ? `${progress}%` : (downloadSpeed.includes('Preparing') ? 'Preparing...' : 'Streaming...')}
+            {progress > 0 ? `${progress}%` : (isPreparing ? 'Preparing pipeline...' : 'Streaming...')}
           </span>
         </div>
 
@@ -52,7 +54,7 @@ export default function DownloadProgress({
               style={{ width: `${Math.max(progress, 5)}%` }}
             />
           ) : (
-            <div className="w-1/3 h-full rounded-full bg-gradient-to-r from-brand-purple to-brand-cyan animate-pulse" />
+            <div className="w-full h-full rounded-full bg-gradient-to-r from-brand-purple/40 via-brand-cyan/60 to-brand-purple/40 animate-pulse" />
           )}
         </div>
 
@@ -60,7 +62,7 @@ export default function DownloadProgress({
         <div className="flex justify-between items-center text-[11px] text-slate-400 pt-1">
           <span className="flex items-center gap-1">
             <Gauge className="w-3.5 h-3.5 text-brand-cyan" />
-            Speed: <strong className="text-slate-200">{downloadSpeed}</strong>
+            Speed: <strong className="text-slate-200">{isPreparing ? 'Assembling stream...' : downloadSpeed}</strong>
           </span>
           {etaSeconds > 0 ? (
             <span className="flex items-center gap-1">
@@ -69,7 +71,7 @@ export default function DownloadProgress({
             </span>
           ) : (
             <span className="text-slate-500 text-[10px]">
-              {progress > 0 ? 'High-speed pipeline active' : 'Buffering media stream...'}
+              {isPreparing ? 'Connecting upstream CDN...' : 'High-speed pipeline active'}
             </span>
           )}
         </div>

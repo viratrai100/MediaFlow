@@ -65,12 +65,11 @@ def get_base_ydl_opts():
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'noprogress': True,
-        'logtostderr': True,
-        'source_address': '0.0.0.0', # Force IPv4 to eliminate [Errno 11001] getaddrinfo failed on Windows
         'retries': 3,
         'fragment_retries': 3,
         'file_access_retries': 3,
         'extractor_retries': 3,
+        'concurrent_fragment_downloads': 4,
         'socket_timeout': 30,
         'geo_bypass': True,
         'js_runtimes': {
@@ -326,6 +325,9 @@ def download_media(url, format_id, output_path):
 
         # Exact height selector: strictly matches exact resolution paired with best audio, remuxing into mp4
         ydl_opts['format'] = (
+            f"bestvideo[height={target_height}][vcodec^=avc][fps<=30]+bestaudio[ext=m4a]/"
+            f"bestvideo[height={target_height}][vcodec^=avc]+bestaudio[ext=m4a]/"
+            f"bestvideo[height={target_height}][vcodec^=vp9]+bestaudio[ext=m4a]/"
             f"bestvideo[height={target_height}][ext=mp4]+bestaudio[ext=m4a]/"
             f"bestvideo[height={target_height}]+bestaudio[ext=m4a]/"
             f"bestvideo[height={target_height}]+bestaudio/"

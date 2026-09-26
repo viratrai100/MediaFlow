@@ -154,6 +154,13 @@ export function DownloadProvider({ children }) {
 
     const abortController = new AbortController();
     activeDownloadAbortRef.current = abortController;
+    const timeoutId = setTimeout(() => {
+      if (activeDownloadAbortRef.current) {
+        activeDownloadAbortRef.current.abort();
+        setErrorMessage('Stream connection timed out after 90 seconds. Please retry or choose another quality format.');
+        setStatus('error');
+      }
+    }, 90000);
 
     try {
       // Build direct HTTP streaming URL with selected quality format
@@ -168,6 +175,8 @@ export function DownloadProvider({ children }) {
         signal: abortController.signal
       });
 
+      clearTimeout(timeoutId);
+
       // Intercept non-200 responses (HTTP 400 / 403 / 500)
       if (!response.ok) {
         let errMsg = `Server returned HTTP ${response.status}`;
@@ -181,7 +190,7 @@ export function DownloadProvider({ children }) {
         throw new Error(errMsg);
       }
 
-      setDownloadSpeed('Streaming chunks...');
+      setDownloadSpeed('Receiving stream...');
 
       // Stream binary response chunks while computing real-time speed & progress
       const contentLengthHeader = response.headers.get('Content-Length');

@@ -110,8 +110,8 @@ export default function HomePage() {
         </Card>
       )}
 
-      {/* Ready State: Media Info & Format Chooser */}
-      {status === 'ready' && mediaInfo && (
+      {/* Ready / Error State: Media Info & Format Chooser */}
+      {(status === 'ready' || (status === 'error' && mediaInfo)) && mediaInfo && (
         <div className="max-w-3xl mx-auto animate-in fade-in zoom-in-95 duration-300">
           <Card variant="gradient" className="space-y-6">
             <MediaPreviewCard mediaInfo={mediaInfo} />

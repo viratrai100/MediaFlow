@@ -34,32 +34,42 @@ export default function DownloadProgress({
       </div>
 
       {/* Real-time Progress Bar */}
-      <div className="space-y-2 max-w-md mx-auto">
+      <div className="space-y-3 max-w-md mx-auto">
         <div className="flex justify-between items-center text-xs font-semibold">
           <span className="text-slate-300 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-brand-cyan" />
             Transferred: <strong className="text-white">{downloadedBytes || '0 MB'}</strong>
           </span>
-          <span className="text-brand-cyan font-mono text-sm">{progress > 0 ? `${progress}%` : 'Buffering...'}</span>
+          <span className="text-brand-cyan font-mono text-xs">
+            {progress > 0 ? `${progress}%` : (downloadSpeed.includes('Preparing') ? 'Preparing...' : 'Streaming...')}
+          </span>
         </div>
 
-        <div className="w-full bg-dark-900/80 rounded-full h-3 p-0.5 border border-white/10 overflow-hidden shadow-inner">
-          <div
-            className="bg-gradient-to-r from-brand-purple via-brand-cyan to-brand-cyan h-full rounded-full transition-all duration-300 shadow-glow-cyan"
-            style={{ width: `${Math.max(progress, 5)}%` }}
-          />
+        <div className="w-full bg-dark-900/80 rounded-full h-3 p-0.5 border border-white/10 overflow-hidden shadow-inner relative">
+          {progress > 0 ? (
+            <div
+              className="bg-gradient-to-r from-brand-purple via-brand-cyan to-brand-cyan h-full rounded-full transition-all duration-300 shadow-glow-cyan"
+              style={{ width: `${Math.max(progress, 5)}%` }}
+            />
+          ) : (
+            <div className="w-1/3 h-full rounded-full bg-gradient-to-r from-brand-purple to-brand-cyan animate-pulse" />
+          )}
         </div>
 
         {/* Telemetry Stats */}
         <div className="flex justify-between items-center text-[11px] text-slate-400 pt-1">
           <span className="flex items-center gap-1">
-            <Gauge className="w-3 h-3 text-slate-400" />
-            Speed: <strong className="text-slate-200">{downloadSpeed || 'Streaming'}</strong>
+            <Gauge className="w-3.5 h-3.5 text-brand-cyan" />
+            Speed: <strong className="text-slate-200">{downloadSpeed}</strong>
           </span>
-          {etaSeconds > 0 && (
+          {etaSeconds > 0 ? (
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3 text-slate-400" />
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
               ETA: <strong className="text-slate-200">~{etaSeconds}s</strong>
+            </span>
+          ) : (
+            <span className="text-slate-500 text-[10px]">
+              {progress > 0 ? 'High-speed pipeline active' : 'Buffering media stream...'}
             </span>
           )}
         </div>

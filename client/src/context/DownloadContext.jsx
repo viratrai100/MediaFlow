@@ -149,7 +149,7 @@ export function DownloadProvider({ children }) {
     setErrorMessage(null);
     setProgress(0);
     setDownloadedBytes('0 MB');
-    setDownloadSpeed('0.0 MB/s');
+    setDownloadSpeed('Preparing stream pipeline...');
     setStatus('downloading');
 
     const abortController = new AbortController();
@@ -181,6 +181,8 @@ export function DownloadProvider({ children }) {
         throw new Error(errMsg);
       }
 
+      setDownloadSpeed('Streaming chunks...');
+
       // Stream binary response chunks while computing real-time speed & progress
       const contentLengthHeader = response.headers.get('Content-Length');
       const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
@@ -206,14 +208,17 @@ export function DownloadProvider({ children }) {
         }
 
         const now = Date.now();
-        if (now - lastTime >= 400) {
+        if (now - lastTime >= 200) {
           const bytesDiff = receivedBytes - lastBytes;
           const timeDiffSec = (now - lastTime) / 1000;
-          const speedBps = bytesDiff / timeDiffSec;
-          setDownloadSpeed((speedBps / (1024 * 1024)).toFixed(2) + ' MB/s');
+          if (timeDiffSec > 0) {
+            const speedBps = bytesDiff / timeDiffSec;
+            const speedMBs = (speedBps / (1024 * 1024)).toFixed(1);
+            setDownloadSpeed(`${speedMBs} MB/s`);
 
-          if (totalBytes > receivedBytes && speedBps > 0) {
-            setEtaSeconds(Math.round((totalBytes - receivedBytes) / speedBps));
+            if (totalBytes > receivedBytes && speedBps > 0) {
+              setEtaSeconds(Math.max(1, Math.round((totalBytes - receivedBytes) / speedBps)));
+            }
           }
           lastTime = now;
           lastBytes = receivedBytes;

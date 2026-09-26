@@ -87,6 +87,30 @@ def get_base_ydl_opts():
         opts['ffmpeg_location'] = FFMPEG_EXE
     if NODE_EXE and NODE_EXE != 'node' and os.path.exists(NODE_EXE):
         opts['js_runtimes']['node']['path'] = NODE_EXE
+
+    # Secure server-side authentication support (strictly server-side, never exposed to client)
+    cookie_file = os.environ.get('YOUTUBE_COOKIE_FILE') or os.environ.get('YOUTUBE_COOKIE_PATH')
+    if cookie_file and os.path.exists(cookie_file):
+        opts['cookiefile'] = cookie_file
+    elif os.environ.get('YOUTUBE_COOKIES'):
+        try:
+            temp_dir = Path(__file__).resolve().parent.parent / "temp"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_cookie_path = temp_dir / ".yt_cookies_active.txt"
+            with open(temp_cookie_path, 'w', encoding='utf-8') as cf:
+                cf.write(os.environ.get('YOUTUBE_COOKIES'))
+            opts['cookiefile'] = str(temp_cookie_path)
+        except Exception:
+            pass
+
+    po_token = os.environ.get('YOUTUBE_PO_TOKEN') or os.environ.get('PO_TOKEN')
+    if po_token:
+        if 'extractor_args' not in opts:
+            opts['extractor_args'] = {}
+        if 'youtube' not in opts['extractor_args']:
+            opts['extractor_args']['youtube'] = {}
+        opts['extractor_args']['youtube']['po_token'] = [po_token]
+
     return opts
 
 def extract_media_info(url):
